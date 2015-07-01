@@ -1,4 +1,5 @@
 import os
+from bs4 import BeautifulSoup
 
 from django.core import mail
 from django.test import TestCase
@@ -13,29 +14,16 @@ class TrackedEmailMessageTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.html_message = open(os.path.join(os.path.dirname(__file__), 'test_data/email_body.html')).read()
-
-    def test_tracked_email_init(self):
-        """
-        Test that TrackedEmailMessage is initialized with an HTML message body
-        """
-        self.message = TrackedEmailMessage(html_message=self.html_message)
-        
-        self.assertEqual(
-            self.html_message, self.message.alternatives[0][0],
-            msg='TrackedEmailMessage does not contain provided HTML message'
-        )
-
-    def test_email_send(self):
-        """
-        Test successful send() for TrackedEmailMessage
-        """
-        TrackedEmailMessage(
+        cls.tracked_email = TrackedEmailMessage(
             subject='Test Subject', body='Test plain text body',
             from_email='test@fromdomain.com', to=['test@todomain.com'],
-            html_message=self.html_message
-        ).send()
-
-        # Test that one message was sent
-        self.assertEqual(
-            len(mail.outbox), 1, msg='Mail not sent, or sent more than once'
         )
+
+    def test_add_beacon(self):      
+        soup = BeautifulSoup(
+            self.tracked_email._add_tracking_beacon(self.html_message)
+        )
+        beacon = soup.find('img', id='email_beacon')
+
+        # Verify that a beacon img tag is present
+        self.assertIsNotNone(beacon, msg="No beacon img tag found in HTML message")
