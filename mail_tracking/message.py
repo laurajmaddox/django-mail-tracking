@@ -1,28 +1,48 @@
-from bs4 import BeautifulSoup
-
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+
+from mail_tracking.models import TrackedCampaign, TrackedCampaignEmail
 
 
 class TrackedEmailMessage(EmailMultiAlternatives):
     """
-    Subclass of EmailMultiAlternatives for creating tracked EmailMessages
-    """ 
-    def _add_tracking_beacon(self, html_message):
+    Subclass of Django's EmailMultiAlternative for tracked campaign emails
+    """
+    def __init__(self, campaign, campaign_email, *args, **kwargs):
         """
-        Add tracking beacon img tag with campaign and message identifiiers
-        to email's HTML body
+        Extends intialization with identifying campaign information
+        for creating tracking URLs
+
+        campaign and campaign_email can be an existing instance or 
+        'name' argument string for creating a new instance
         """
-        soup = BeautifulSoup(html_message)
+        super(TrackedEmailMessage, self).__init__(*args, **kwargs)
 
-        beacon_url = '/'.join([
-            settings.MAIL_TRACKING_URL, 'TODOcampaign', 'TODOmsg'
-        ])
+        self._set_campaign(campaign)
+        self._set_campaign_email(campaign_email)
 
-        soup.body.append(
-            soup.new_tag(
-                'img', height='0', width='0', id='email_beacon', src=beacon_url
+
+    def _set_campaign(self, campaign):
+        """
+        Sets the campaign attribute with a TrackedCampaign
+        """
+        if isinstance(campaign, str):
+            campaign = TrackedCampaign.objects.create(name=campaign)
+
+        campaign.save()
+
+        self.campaign = campaign
+
+    def _set_campaign_email(self, campaign_email):
+        """
+        Sets the campaign email attribute with a TrackedCampaignEmail
+        """
+        if isinstance(campaign_email, str):
+            campaign_email = TrackedCampaignEmail.objects.create(
+                campaign=self.campaign, name=campaign_email
             )
-        )
 
-        return str(soup)
+        campaign_email.save()
+
+        self.campaign_email = campaign_email
+
