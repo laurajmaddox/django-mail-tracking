@@ -105,4 +105,4 @@ STATIC_URL = '/static/'
 
 
 # Base URL for tracked URLs and beacon in tracked email campaigns
-MAIL_TRACKING_URL = 'https://www.testdomain.com'
+MAIL_TRACKING_URL = 'https://www.projectdomain.com'
